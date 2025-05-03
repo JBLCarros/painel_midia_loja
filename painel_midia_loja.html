@@ -4,12 +4,35 @@
   <meta charset="UTF-8" />
   <title>Painel de Mídia da Loja</title>
   <style>
-    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-    .carousel { display: flex; transition: transform 1s ease; width: 100vw; height: 60vh; }
-    .carousel img { width: 100vw; height: 60vh; object-fit: contain; }
-    iframe.video, iframe.music { border: none; width: 100vw; }
-    iframe.video { height: 40vh; }
-    iframe.music { height: 1px; visibility: hidden; }
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    .carousel {
+      display: flex;
+      transition: transform 1s ease;
+      width: 100vw;
+      height: 60vh;
+    }
+    .carousel img {
+      width: 100vw;
+      height: 60vh;
+      object-fit: contain;
+    }
+    iframe.video {
+      border: none;
+      width: 100vw;
+      height: 40vh;
+    }
+    iframe.music {
+      border: none;
+      width: 1px;
+      height: 1px;
+      visibility: hidden;
+    }
   </style>
 </head>
 <body>
@@ -18,21 +41,20 @@
   <iframe id="music" class="music" allow="autoplay"></iframe>
 
   <script>
-    const sheetID = "1rQcNOKkmVzQoIuXX79DrBhXxUXtevw63E9vxKGqvZBs"; // Corrigido
+    const sheetID = "1rQcNOKkmVzQoIuXX79DrBhXxUXtevw63E9vxKGqvZBs";
+    const apiKey = "AIzaSyA0hsBe1SNVz3cWkCaRQkrWA8VJVqT5rL8";
     const sheetRange = "Página1!A2:C";
-    const apiKey = "AIzaSyA0hsBe1SNVz3cWkCaRQkrWA8VJVqT5rL8"; // Certifique-se de que está ativa
-
     const sheetURL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${sheetRange}?alt=json&key=${apiKey}`;
 
     async function fetchData() {
       try {
         const res = await fetch(sheetURL);
         const data = await res.json();
-        const rows = data.values;
+        const rows = data.values || [];
 
         const imageLinks = rows.map(row => row[0]).filter(Boolean);
-        const videoLink = rows[0][1] || "";
-        const musicLink = rows[0][2] || "";
+        const videoLink = rows[0]?.[1] || "";
+        const musicLink = rows[0]?.[2] || "";
 
         loadCarousel(imageLinks);
         loadVideo(videoLink);
@@ -44,6 +66,8 @@
 
     function loadCarousel(images) {
       const container = document.getElementById("carouselContainer");
+      if (images.length === 0) return;
+
       container.innerHTML = images.map(src => `<img src="${src}">`).join("");
       let index = 0;
       setInterval(() => {
@@ -54,11 +78,15 @@
 
     function loadVideo(url) {
       const iframe = document.getElementById("video");
+      if (!url) return;
+
       if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        const videoId = url.split("v=")[1]?.split("&")[0] || url.split("/").pop();
+        const videoId = url.includes("v=")
+          ? url.split("v=")[1].split("&")[0]
+          : url.split("/").pop();
         iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
       } else if (url.includes("drive.google.com")) {
-        const fileId = url.match(/[-\w]{25,}/);
+        const fileId = url.match(/[-\w]{25,}/)?.[0];
         iframe.src = `https://drive.google.com/file/d/${fileId}/preview`;
       } else {
         iframe.src = url;
@@ -67,16 +95,20 @@
 
     function loadMusic(url) {
       const iframe = document.getElementById("music");
+      if (!url) return;
+
       if (url.includes("spotify.com")) {
         iframe.src = url.replace("open.spotify.com", "open.spotify.com/embed");
       } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        const videoId = url.split("v=")[1]?.split("&")[0] || url.split("/").pop();
+        const videoId = url.includes("v=")
+          ? url.split("v=")[1].split("&")[0]
+          : url.split("/").pop();
         iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0`;
       }
     }
 
     fetchData();
-    setInterval(fetchData, 60000); // atualiza a cada 1 min
+    setInterval(fetchData, 60000); // Atualiza a cada 1 minuto
   </script>
 </body>
 </html>
